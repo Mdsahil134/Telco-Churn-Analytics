@@ -2,11 +2,17 @@ import cors from "cors";
 import express from "express";
 import fs from "fs";
 import { MongoClient } from "mongodb";
+import { loadEnvFile } from "node:process";
 import path from "path";
 import { fileURLToPath } from "url";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const ENV_PATH = path.resolve(__dirname, ".env");
+
+if (fs.existsSync(ENV_PATH)) {
+  loadEnvFile(ENV_PATH);
+}
 
 const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/";
 const DB_NAME = "churn_db";
@@ -300,7 +306,11 @@ app.get("/api/feature-importance.png", (_req, res) => {
 });
 
 async function start() {
-  client = new MongoClient(MONGO_URI, { serverSelectionTimeoutMS: 5000 });
+  client = new MongoClient(MONGO_URI, {
+    serverSelectionTimeoutMS: 15000,
+    connectTimeoutMS: 15000,
+    family: 4,
+  });
   await client.connect();
   db = client.db(DB_NAME);
   await db.command({ ping: 1 });
