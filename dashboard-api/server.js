@@ -14,8 +14,6 @@ if (fs.existsSync(ENV_PATH)) {
   loadEnvFile(ENV_PATH);
 }
 
-const MONGO_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/";
-const DB_NAME = "churn_db";
 const PORT = Number(process.env.PORT || 4000);
 const SUMMARY_PATH = path.resolve(
   __dirname,
@@ -306,13 +304,19 @@ app.get("/api/feature-importance.png", (_req, res) => {
 });
 
 async function start() {
-  client = new MongoClient(MONGO_URI, {
-    serverSelectionTimeoutMS: 15000,
-    connectTimeoutMS: 15000,
-    family: 4,
+  if (!process.env.MONGODB_URI) {
+    throw new Error("MONGODB_URI environment variable is missing");
+  }
+
+  client = new MongoClient(process.env.MONGODB_URI, {
+    serverSelectionTimeoutMS: 20000,
+    connectTimeoutMS: 20000,
   });
+
   await client.connect();
-  db = client.db(DB_NAME);
+  console.log("MongoDB connected successfully");
+
+  db = client.db("churn_db");
   await db.command({ ping: 1 });
   await db.collection("customers").createIndex({ customerID: 1 });
   await db.collection("predictions").createIndex({ customerID: 1 });
