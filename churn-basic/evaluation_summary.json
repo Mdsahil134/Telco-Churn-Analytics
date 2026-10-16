@@ -1,0 +1,38 @@
+{
+  "selected_model": "Random Forest",
+  "test_size": 1409,
+  "train_size": 5634,
+  "churn_prevalence": 0.26537,
+  "models": [
+    {
+      "name": "Logistic Regression",
+      "accuracy": 0.7388,
+      "precision": 0.5052,
+      "recall": 0.7834,
+      "f1": 0.6143,
+      "roc_auc": 0.8417,
+      "confusion_matrix": [[748, 287], [81, 293]]
+    },
+    {
+      "name": "Random Forest",
+      "accuracy": 0.7495,
+      "precision": 0.5183,
+      "recall": 0.7968,
+      "f1": 0.6280,
+      "roc_auc": 0.8425,
+      "confusion_matrix": [[758, 277], [76, 298]]
+    }
+  ],
+  "feature_importance_top10": [
+    ["num__tenure", 0.175880],
+    ["num__TotalCharges", 0.126244],
+    ["cat__Contract_Two year", 0.124594],
+    ["num__MonthlyCharges", 0.081967],
+    ["cat__InternetService_Fiber optic", 0.080271],
+    ["cat__PaymentMethod_Electronic check", 0.065124],
+    ["cat__Contract_One year", 0.045969],
+    ["cat__OnlineSecurity_Yes", 0.040086],
+    ["cat__TechSupport_Yes", 0.023745],
+    ["cat__TechSupport_No internet service", 0.023613]
+  ]
+}
