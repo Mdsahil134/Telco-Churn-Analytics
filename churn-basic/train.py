@@ -476,8 +476,8 @@ def main() -> int:
             f"{rf_metrics['accuracy']:.4f} (>= 95.0%) with ROC-AUC {rf_metrics['roc_auc']:.4f}!"
         )
 
-        # Dashboard UI expects Logistic Regression and Random Forest models
-        dashboard_models = [lr_metrics, rf_metrics]
+        # Dashboard UI displays all 5 evaluated models
+        dashboard_models = [xgb_metrics, lgb_metrics, cat_metrics, rf_metrics, lr_metrics]
         selected_name = "Random Forest"
         selected_model = rf
 

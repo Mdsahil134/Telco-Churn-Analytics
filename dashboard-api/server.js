@@ -318,6 +318,29 @@ async function start() {
 
   db = client.db("churn_db");
   await db.command({ ping: 1 });
+
+  // Auto-sync predictions from predictions_seed.json if remote collection has outdated predictions (e.g. 2,223 high risk from 10/16 run)
+  const SEED_FILE = path.resolve(__dirname, "predictions_seed.json");
+  if (fs.existsSync(SEED_FILE)) {
+    try {
+      const highRiskInDb = await db.collection("predictions").countDocuments({ risk_level: "High" });
+      const totalInDb = await db.collection("predictions").countDocuments({});
+      if (totalInDb === 0 || highRiskInDb > 1000) {
+        console.log(`Outdated or missing predictions detected (${highRiskInDb} high risk, ${totalInDb} total). Syncing from predictions_seed.json...`);
+        const seedData = JSON.parse(fs.readFileSync(SEED_FILE, "utf8"));
+        const documents = seedData.map((d) => ({
+          ...d,
+          scored_at: d.scored_at ? new Date(d.scored_at) : new Date(),
+        }));
+        await db.collection("predictions").drop().catch(() => {});
+        const res = await db.collection("predictions").insertMany(documents);
+        console.log(`Successfully synced ${res.insertedCount} updated predictions into churn_db.predictions`);
+      }
+    } catch (seedErr) {
+      console.warn("Prediction seed sync warning:", seedErr.message);
+    }
+  }
+
   await db.collection("customers").createIndex({ customerID: 1 });
   await db.collection("predictions").createIndex({ customerID: 1 });
   await db.collection("predictions").createIndex({ churn_probability: -1 });

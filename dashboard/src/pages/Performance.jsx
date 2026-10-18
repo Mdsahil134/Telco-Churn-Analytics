@@ -134,7 +134,7 @@ export default function Performance() {
           Model <span className="gradient-text">Performance</span>
         </h2>
         <p style={{ color: "var(--text-secondary)", marginTop: 6, fontSize: "0.9rem" }}>
-          Metrics computed on the held-out 20% test set (1,409 customers). Selected model:{" "}
+          Metrics computed on the held-out 20% test set ({data?.test_size ? data.test_size.toLocaleString() : "1,247"} customers) via SMOTEENN + Engineered Features pipeline. Selected model:{" "}
           <strong style={{ color: "#c7d2fe" }}>{data?.selected_model ?? "—"}</strong>
         </p>
       </div>
@@ -142,7 +142,7 @@ export default function Performance() {
       {/* ── Comparison table ── */}
       <div className="glass fade-in-2" style={{ overflow: "hidden" }}>
         <div style={{ padding: "20px 24px 0" }}>
-          <p style={{ fontWeight: 700, fontSize: "0.95rem" }}>Logistic Regression vs Random Forest</p>
+          <p style={{ fontWeight: 700, fontSize: "0.95rem" }}>All Models Benchmark (Gradient Boosted &amp; Classical Ensembles)</p>
           <p style={{ fontSize: "0.78rem", color: "var(--text-muted)", marginTop: 4 }}>
             Precision, Recall, F1 computed for the churn class (1). ROC-AUC uses predicted probabilities.
           </p>
@@ -170,7 +170,7 @@ export default function Performance() {
 
       {/* ── Confusion matrices ── */}
       {data && (
-        <div className="fade-in-3" style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 20 }}>
+        <div className="fade-in-3" style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(360px, 1fr))", gap: 20 }}>
           {data.models.map((model) => {
             const [[tn, fp], [fn, tp]] = model.confusion_matrix;
             return (
@@ -263,6 +263,10 @@ export default function Performance() {
             }}>
               <img
                 src="/api/feature-importance.png"
+                onError={(e) => {
+                  e.currentTarget.onerror = null;
+                  e.currentTarget.src = "/feature_importance.png";
+                }}
                 alt="Random Forest feature importance chart"
                 style={{ width: "100%", display: "block" }}
               />
