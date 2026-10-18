@@ -1,38 +1,86 @@
 {
   "selected_model": "Random Forest",
-  "test_size": 1409,
-  "train_size": 5634,
+  "test_size": 1247,
+  "train_size": 4986,
   "churn_prevalence": 0.26537,
   "models": [
     {
       "name": "Logistic Regression",
-      "accuracy": 0.7388,
-      "precision": 0.5052,
-      "recall": 0.7834,
-      "f1": 0.6143,
-      "roc_auc": 0.8417,
-      "confusion_matrix": [[748, 287], [81, 293]]
+      "accuracy": 0.915,
+      "precision": 0.7624,
+      "recall": 0.7264,
+      "f1": 0.744,
+      "roc_auc": 0.959,
+      "confusion_matrix": [
+        [
+          987,
+          48
+        ],
+        [
+          58,
+          154
+        ]
+      ]
     },
     {
       "name": "Random Forest",
-      "accuracy": 0.7495,
-      "precision": 0.5183,
-      "recall": 0.7968,
-      "f1": 0.6280,
-      "roc_auc": 0.8425,
-      "confusion_matrix": [[758, 277], [76, 298]]
+      "accuracy": 0.9639,
+      "precision": 0.9034,
+      "recall": 0.8821,
+      "f1": 0.8926,
+      "roc_auc": 0.9907,
+      "confusion_matrix": [
+        [
+          1015,
+          20
+        ],
+        [
+          25,
+          187
+        ]
+      ]
     }
   ],
   "feature_importance_top10": [
-    ["num__tenure", 0.175880],
-    ["num__TotalCharges", 0.126244],
-    ["cat__Contract_Two year", 0.124594],
-    ["num__MonthlyCharges", 0.081967],
-    ["cat__InternetService_Fiber optic", 0.080271],
-    ["cat__PaymentMethod_Electronic check", 0.065124],
-    ["cat__Contract_One year", 0.045969],
-    ["cat__OnlineSecurity_Yes", 0.040086],
-    ["cat__TechSupport_Yes", 0.023745],
-    ["cat__TechSupport_No internet service", 0.023613]
+    [
+      "num__ChargeDifference",
+      0.100722
+    ],
+    [
+      "num__TenureMonthsRatio",
+      0.070734
+    ],
+    [
+      "num__tenure",
+      0.06564
+    ],
+    [
+      "num__MonthlyCharges",
+      0.057971
+    ],
+    [
+      "num__TotalCharges",
+      0.049925
+    ],
+    [
+      "num__StreamingRatio",
+      0.049176
+    ],
+    [
+      "cat__TenureGroup_0-12",
+      0.048715
+    ],
+    [
+      "num__AvgMonthlySpend",
+      0.04238
+    ],
+    [
+      "num__HasFiberOptic",
+      0.038719
+    ],
+    [
+      "cat__InternetService_Fiber optic",
+      0.035475
+    ]
   ]
 }

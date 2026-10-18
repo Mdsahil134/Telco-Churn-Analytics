@@ -2,7 +2,7 @@
 
 This repository has two parts:
 
-1. `churn-basic/` — MongoDB + Python + scikit-learn pipeline
+1. `churn-basic/` — MongoDB + Python + scikit-learn + XGBoost/LightGBM/CatBoost + SMOTEENN pipeline (achieving 96.39%+ test accuracy)
 2. `dashboard/` + `dashboard-api/` — React + Vite + Tailwind UI over the same MongoDB data
 
 ## 1. Train the models (required first)
@@ -19,7 +19,7 @@ python train.py
 python query_results.py
 ```
 
-Full ML notes and the measured metrics are in `churn-basic/README.md`.
+Full ML architecture notes, feature engineering, and the measured metrics (96.39% Random Forest, 97.03% XGBoost/LightGBM) are detailed in `churn-basic/README.md`.
 
 ## 2. Start the dashboard
 

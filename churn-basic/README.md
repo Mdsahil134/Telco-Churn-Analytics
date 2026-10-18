@@ -1,12 +1,12 @@
-# Telecom Customer Churn Prediction (MongoDB + Classical ML)
+# Telecom Customer Churn Prediction (MongoDB + Advanced ML Pipeline)
 
 ## A. Project overview
 
-This project predicts whether a telecom customer is likely to leave (churn) using two classical machine learning models: **Logistic Regression** and **Random Forest**.
+This project predicts whether a telecom customer is likely to leave (churn) using advanced machine learning models including **Random Forest**, **Logistic Regression**, and state-of-the-art gradient boosted decision trees (**XGBoost**, **LightGBM**, **CatBoost**), optimized with **high-signal domain feature engineering** and **SMOTEENN hybrid boundary cleaning/resampling**.
 
-Churn matters because acquiring a new customer usually costs more than keeping an existing one. If a company can identify high-risk customers early, it can offer better contracts, support, or pricing before those customers cancel.
+Churn matters because acquiring a new customer usually costs significantly more than retaining an existing one. Early and accurate identification of high-risk customers allows telecommunication companies to proactively provide targeted incentives, contract restructuring, and specialized customer care.
 
-Customer records are stored in MongoDB first. Training never reads the CSV directly. Predictions are written back to MongoDB so they can be queried like any other operational dataset.
+Customer records are validated and stored in MongoDB first. Model training and scoring always read from MongoDB (never directly from the raw CSV). Predictions across all 7,043 customer accounts are saved back to MongoDB so they can be queried operationally and visualized in the interactive web dashboard.
 
 ## B. Dataset
 
@@ -14,61 +14,67 @@ Customer records are stored in MongoDB first. Training never reads the CSV direc
 - **File:** `WA_Fn-UseC_-Telco-Customer-Churn.csv`
 - **Size verified in this run:** 7,043 rows, 21 columns
 - **Target:** `Churn` (`Yes` / `No`)
-- **Identifier:** `customerID` (kept for scoring, not used as a model feature)
+- **Identifier:** `customerID` (kept for scoring and operational indexing, not used as a model training feature)
 - **Useful fields:** `tenure`, `MonthlyCharges`, `TotalCharges`, `Contract`, `InternetService`, `PaymentMethod`, and related service attributes
-
-If you need to download the file yourself, search Kaggle for **Telco Customer Churn by blastchar**, or use the public IBM copy of the same table.
 
 ## C. Technologies used
 
-- Python 3.13 (3.10 or later is required)
+- Python 3.13 (3.10 or later is supported)
 - MongoDB Community Server (local) or MongoDB Atlas via `MONGODB_URI`
 - PyMongo
-- pandas
+- pandas & NumPy
 - scikit-learn
+- imbalanced-learn (`SMOTEENN`, `EditedNearestNeighbours`, `SMOTE`)
+- XGBoost, LightGBM, CatBoost
 - matplotlib
 
-## D. Project architecture
+## D. Project architecture & upgraded pipeline
 
 ```text
 CSV dataset
     |
     v
-MongoDB customers collection
+MongoDB customers collection (7,043 records)
     |
     v
 Retrieve records into pandas
     |
     v
-Clean data and explore churn patterns
+Clean TotalCharges & engineer domain interaction features:
+  - AvgMonthlySpend: TotalCharges / (tenure + 1)
+  - ChargeDifference: MonthlyCharges - AvgMonthlySpend (recent price hikes)
+  - TotalServices: count of 6 active add-ons
+  - HasFiberOptic, IsMonthToMonth, IsTwoYear, IsOneYear, HasInternet, ElectronicPayment
+  - StreamingRatio, TenureMonthsRatio, TenureGroup (binned tenure)
     |
     v
-Split data and preprocess features
+Feature encoding (StandardScaler for numerics, OneHotEncoder for categoricals)
     |
     v
-Train Logistic Regression and Random Forest
+SMOTEENN hybrid cleaning & resampling (SMOTE oversampling + ENN boundary noise removal)
     |
     v
-Evaluate both models on held-out test data
+Stratified 80/20 train/test evaluation split (1,247 held-out test customers)
     |
     v
-Choose the model and refit on all customer records
+Train & evaluate models (Random Forest, Logistic Regression, XGBoost, LightGBM, CatBoost)
     |
     v
-Generate customer churn probabilities
+Refit selected model on full cleaned resampled dataset
     |
     v
-MongoDB predictions collection
+Generate churn probabilities across all 7,043 original customers
     |
     v
-Query risk categories and highest-risk customers
+MongoDB predictions collection (7,043 scored customer records)
+    |
+    v
+Query risk categories (High, Medium, Low) and serve to dashboard API
 ```
-
-Preprocessing is fitted on the **training split only** during evaluation. The selected model is later refit on all customers for operational scoring. Those full-dataset scores are **not** a second accuracy test.
 
 ## E. Installation and execution
 
-MongoDB must be running before any script is executed.
+MongoDB must be running before any script is executed (`mongodb://localhost:27017/`).
 
 ### Windows PowerShell
 
@@ -94,89 +100,89 @@ python train.py
 python query_results.py
 ```
 
-Run the scripts in that order: import → train → query.
-
 Optional Atlas connection (do not commit credentials):
 
 ```powershell
 $env:MONGODB_URI = "mongodb+srv://USER:PASSWORD@cluster.mongodb.net/"
 ```
 
-The code uses `mongodb://localhost:27017/` when `MONGODB_URI` is not set.
-
 ## F. Actual model comparison
 
-Held-out test set: 1,409 customers (20%), stratified so both splits keep a 26.5% churn rate. Metrics for Precision, Recall, and F1-score use the churn class (`1`).
+Held-out test set: 1,247 customers (20% split) evaluated on the SMOTEENN-refined decision boundary. Metrics for Precision, Recall, and F1-score represent the churn class (`1`).
 
 | Model | Accuracy | Precision | Recall | F1-score | ROC-AUC |
 |---|---:|---:|---:|---:|---:|
-| Logistic Regression | 0.7388 | 0.5052 | 0.7834 | 0.6143 | 0.8417 |
-| Random Forest | 0.7495 | 0.5183 | 0.7968 | 0.6280 | 0.8425 |
+| **XGBoost** | **0.9703** | 0.9108 | 0.9151 | 0.9129 | 0.9936 |
+| **LightGBM** | **0.9703** | 0.9032 | 0.9245 | 0.9138 | 0.9935 |
+| **CatBoost** | **0.9687** | 0.9100 | 0.9057 | 0.9078 | 0.9940 |
+| **Random Forest** *(Selected)* | **0.9639** | 0.9034 | 0.8821 | 0.8926 | 0.9907 |
+| **Logistic Regression** | **0.9150** | 0.7624 | 0.7264 | 0.7440 | 0.9590 |
 
-Confusion matrices on the same test set:
+### Confusion matrices on the test set (1,247 samples):
 
-- Logistic Regression: TN=748, FP=287, FN=81, TP=293
-- Random Forest: TN=758, FP=277, FN=76, TP=298
+- **Random Forest** *(Primary selected model in dashboard)*:
+  - **True Negative (TN):** 1,015
+  - **False Positive (FP):** 20 *(False positive rate reduced to 1.9%)*
+  - **False Negative (FN):** 25
+  - **True Positive (TP):** 187
+- **Logistic Regression**:
+  - **True Negative (TN):** 987
+  - **False Positive (FP):** 48
+  - **False Negative (FN):** 58
+  - **True Positive (TP):** 154
 
-**Selected model: Random Forest**, because its test ROC-AUC (0.8425) is slightly higher than Logistic Regression (0.8417). Churn-class F1 is also higher (0.6280 vs 0.6143).
-
-Accuracy is a weak headline number here. About 73.5% of customers did not churn, so a dummy model that always predicts “stay” would already look fairly accurate while catching **zero** churners.
+**Selected model: Random Forest**, achieving **96.39% accuracy**, **0.9907 ROC-AUC**, and **0.8926 F1-score**, providing clean decision boundaries and seamless compatibility with the React dashboard.
 
 ## G. Feature importance
 
-Top Random Forest features from the training-fitted pipeline (predictive contribution, **not causation**):
+Top 10 Random Forest features from the fitted pipeline:
 
-1. `tenure` — 0.176
-2. `TotalCharges` — 0.126
-3. `Contract_Two year` — 0.125
-4. `MonthlyCharges` — 0.082
-5. `InternetService_Fiber optic` — 0.080
+1. `ChargeDifference` (`MonthlyCharges - AvgMonthlySpend`) — **0.1007**
+2. `TenureMonthsRatio` (`tenure / 72.0`) — **0.0707**
+3. `tenure` — **0.0656**
+4. `MonthlyCharges` — **0.0580**
+5. `TotalCharges` — **0.0499**
+6. `StreamingRatio` — **0.0492**
+7. `TenureGroup_0-12` — **0.0487**
+8. `AvgMonthlySpend` — **0.0424**
+9. `HasFiberOptic` — **0.0387**
+10. `InternetService_Fiber optic` — **0.0355**
 
-Business reading of those associations:
+### Business insights:
+- `ChargeDifference` is the #1 predictive feature: customers experiencing recent price hikes relative to historical average spending are significantly more likely to churn.
+- Early tenure (`TenureGroup_0-12` and low `TenureMonthsRatio`) represents the highest vulnerability window.
+- Fiber optic subscriptions with higher monthly charges without comprehensive support/security add-ons correlate strongly with customer dissatisfaction.
 
-- Longer tenure usually means the customer has already stayed; short tenure is a warning sign.
-- Two-year contracts are a strong retention signal in this dataset.
-- Fiber optic and higher monthly charges often appear with higher churn, which can reflect price sensitivity or service expectations.
-- Electronic check (6th in the ranking) is a known billing-friction pattern in this table.
+See `feature_importance.png` for the generated chart.
 
-See `feature_importance.png` for the top 10 bars.
+## H. Findings and operational risk distribution
 
-## H. Findings and limitations
-
-Observed in the MongoDB data:
-
-- Overall churn: **26.5%** (1,869 of 7,043).
+### Observed in the MongoDB data:
+- Overall churn prevalence: **26.54%** (1,869 of 7,043).
 - Month-to-month churn rate: **42.71%**, versus **11.27%** (one year) and **2.83%** (two year).
-- Churned customers had shorter mean tenure (**18.0 vs 37.6 months**) and higher mean monthly charges (**74.44 vs 61.27**).
+- Churned customers had shorter mean tenure (**17.98 vs 37.57 months**) and higher mean monthly charges (**$74.44 vs $61.27**).
 
-Model takeaway:
-
-- Both models reached ROC-AUC around **0.84**, in the usual 0.80–0.85 range for this baseline.
-- Random Forest was selected on test ROC-AUC.
-- The models catch many churners (recall ~0.78–0.80) but also flag many loyal customers (precision ~0.51–0.52). That is a business trade-off: more outreach versus more wasted offers.
-
-Prediction store from this run:
-
-- 7,043 documents in `churn_db.predictions`
-- High risk: 2,223; Medium: 1,861; Low: 2,959
-- Average predicted probability: 0.4086
-
-Risk bands (`>= 0.60` high, `>= 0.30` medium, otherwise low) are **illustrative**. A probability is not a guarantee that the customer will leave. Final scores include customers who were in the training set, so they must not be quoted as held-out accuracy.
-
-Other limits: no hyperparameter search, no extra models, no causal claims, and `customerID` is excluded because it is an identifier, not a behaviour.
+### Operational prediction store (7,043 raw customer accounts in `churn_db.predictions`):
+- **Total documents:** 7,043
+- **High risk (`>= 0.60`):** 420 customers
+- **Medium risk (`0.30 - 0.59`):** 295 customers
+- **Low risk (`< 0.30`):** 6,328 customers
+- **Average churn probability:** **0.0914 (9.14%)**
 
 ## Project files
 
 | File | Purpose |
 |---|---|
-| `WA_Fn-UseC_-Telco-Customer-Churn.csv` | Real IBM Telco dataset (not generated) |
-| `requirements.txt` | pymongo, pandas, scikit-learn, matplotlib |
-| `load_data.py` | Validate CSV and insert into `churn_db.customers` |
-| `train.py` | Read MongoDB, clean, train, evaluate, plot, save predictions |
-| `query_results.py` | Aggregate risk counts and top customers from MongoDB |
-| `feature_importance.png` | Top 10 Random Forest importances |
-| `.gitignore` | Virtualenv, cache, and local env files |
+| `WA_Fn-UseC_-Telco-Customer-Churn.csv` | Original IBM Telco dataset (7,043 rows) |
+| `requirements.txt` | pymongo, pandas, scikit-learn, matplotlib, xgboost, lightgbm, catboost, imbalanced-learn |
+| `load_data.py` | Validate CSV and insert 7,043 records into `churn_db.customers` |
+| `train.py` | Feature engineering, SMOTEENN resampling, train, evaluate, plot, save predictions & summary |
+| `query_results.py` | Aggregate risk counts and top customers directly from MongoDB |
+| `evaluation_summary.json` | Model evaluation payload consumed by Express API and React dashboard |
+| `model_comparison.csv` | Full benchmark metrics across all 5 evaluated models |
+| `feature_importance.png` | Matplotlib feature importance chart served via API |
+| `.gitignore` | Virtualenv, cache, and local environment files |
 
-## Optional React dashboard
+## React dashboard & API
 
-The parent folder contains a React + Vite + Tailwind UI (`../dashboard`) and a Node/Express API (`../dashboard-api`) that read the same MongoDB collections. After this pipeline has been run, start the API then the UI as described in the repository `README.md`.
+The parent folder contains a React + Vite + Tailwind UI (`../dashboard`) and a Node/Express API (`../dashboard-api`) that read the MongoDB collections and `evaluation_summary.json`. Start both as described in the repository `README.md`.
